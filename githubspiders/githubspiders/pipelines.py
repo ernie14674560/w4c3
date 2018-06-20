@@ -14,7 +14,7 @@ class GithubspidersPipeline(object):
 
     def process_item(self, item, spider):
         item['update_time'] = dateutil.parser.parse(item['update_time'])
-        self.session.add(Repository(**item))
+        self.session.add(Repository(**item)) #** 將item 這個dict 轉化為關鍵字參數的形式傳入Repository
         return item
 
     def open_spider(self, spider):
