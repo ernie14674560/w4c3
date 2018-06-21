@@ -5,6 +5,7 @@ from githubspiders.items import GithubspidersItem
 
 class ReposSpider(scrapy.Spider):
     name = 'repos'
+
     @property
     def start_urls(self):
         url_templ = 'https://github.com/shiyanlou?page={}&tab=repositories'
@@ -14,13 +15,14 @@ class ReposSpider(scrapy.Spider):
     def parse(self, response):
         for repo in response.css('.source'):
             repo_url = response.urljoin(repo.css('.source .mb-1 a::attr(href)').extract_first())
-            request = scrapy.Request(repo_url, callback=CBR_parse) #CBR = Commit, Branch, Release
+            request = scrapy.Request(repo_url, callback=self.cbr_parse)  # CBR = Commit, Branch, Release
             item = GithubspidersItem()
             item['name'] = repo.css('a::text').extract_first().strip()
             item['update_time'] = repo.css('relative-time::attr(datetime)').extract_first()
             request.meta['item'] = item
             yield request
-    def CBR_parse(self, response):
+
+    def cbr_parse(self, response):
         item = response.meta['item']
         item['commits'] = response.css('.commits span::text').extract_first().strip()
         item['branches'] = response.css('.commits+ li span::text').extract_first().strip()
