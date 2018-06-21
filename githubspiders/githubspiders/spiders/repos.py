@@ -12,9 +12,25 @@ class ReposSpider(scrapy.Spider):
         return urls
 
     def parse(self, response):
-        for repo in response.css('li.col-12'):
-            item = GithubspidersItem({
-                'name': repo.css('a::text').extract_first().strip(),
-                'update_time': repo.css('relative-time::attr(datetime)').extract_first()
-            })
-            yield item
+        for repo in response.css('.source'):
+            repo_url = response.urljoin(repo.css('.source .mb-1 a::attr(href)').extract_first())
+            request = scrapy.Request(repo_url, callback=CBR_parse) #CBR = Commit, Branch, Release
+            item = GithubspidersItem()
+            item['name'] = repo.css('a::text').extract_first().strip()
+            item['update_time'] = repo.css('relative-time::attr(datetime)').extract_first()
+            request.meta['item'] = item
+            yield request
+    def CBR_parse(self, response):
+        item = response.meta['item']
+        item['commits'] = response.css('.commits span::text').extract_first().strip()
+        item['branches'] = response.css('.commits+ li span::text').extract_first().strip()
+        item['releases'] = response.css('li:nth-child(3) span::text').extract_first().strip()
+        yield item
+
+# 在迭帶 response.css('.source')為 repo 中
+# 各個倉庫(repo)的url : response.urljoin(repo.css('.source .mb-1 a::attr(href)').extract_first())
+
+# 在各個倉庫頁面中:
+# commit num : response.css('.commits span::text').extract_first().strip()
+# branch num : response.css('.commits+ li span::text').extract_first().strip()
+# release num : response.css('li:nth-child(3) span::text').extract_first().strip()
